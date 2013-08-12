@@ -2,6 +2,27 @@
 
 This plugin supports local notifications on iOS and Android platforms.
 
+## Overview
+
+Local notifications allow you to add messages to the phone's status area.
+
+Notifications can be used for social re-engagement for games, indicating that
+a friend has sent the player a gift.  Tapping the re-engagement notification
+will bring the player back into the game.
+
+When delayed by a number of days, notifications can also be used as to
+re-engage players without requiring social features.
+
+Notifications appear in the status area with a number of features:
+
++ sound: A ringtone-like notification sound that alerts the user.
++ number: Count of notifications represented by that one line.
++ body: Text describing the notification to the user.
++ delay: How far in the future to deliver the nofication (or immediately).
++ icon: Major icon/photo to display for notification.
++ action: Name of action for accepting notification. [iOS only]
++ title: Title for alert is Android status area. [Android only]
+
 ## Installation
 
 Install the Local Notifications plugin by running `basil install localnotify`.
@@ -20,56 +41,62 @@ You can import the localNotify object anywhere in your application:
 import plugins.localnotify.localNotify as localNotify;
 ~~~
 
-
 ## Scheduling Notifications
 
 localNotify.add({
 	name: "HeartAlert",
-	action: "Accept",
-	body: "Melissa has sent you a Heart in Blustery Badgers!",
-	delay: {
-		minutes: 5,
-	}
+	body: "Melissa has sent you a Heart in Blustery Badgers!"
 });
-
 
 ### Notification Counter
 
 Adding the `number` field to your notification object will modify how the
 notification appears:
 
+~~~
+localNotify.add({
+	name: "HeartAlert",
+	number: 2,
+	body: "2 friends have sent you Hearts in Blustery Badgers!"
+});
+~~~
+
 ##### iPhone/iPad
 
-The notification counter on your app icon will be incremented by 1 if `number`
-is non-zero.  When your app is launched, the counter will be reset to zero.
+The notification counter on your app icon will be set to `number`.
+When your app is launched, the counter will be reset to zero.
 
 ##### Android
 
-This is a number attached to each notification in the status bar list.  So it
-will be the number shown next to the notification.  In this way you can
-represent groups of notifications with a single status.
+This number will be shown next to the notification in the status area list.
 
-For example, you may choose to group gifts received from other players into a
-single notification to avoid overwhelming the player using the following example
-code:
+### Combining Notifications
+
+You may choose to group gifts received from other players into a single
+notification to avoid overwhelming the player by using the following code:
 
 ~~~
 function addHeartNotification(fromPlayer, gameName) {
+	// Check if single-heart notification exists
 	localNotify.get("heart", function(heart) {
-		// If single-heart notification exists,
 		if (heart) {
 			var heartCount = heart.count + 1;
 
+			// This will overwrite any existing "hearts" notification
 			localNotify.add({
 				name: "hearts",
 				action: "Accept All",
-				body: "You have received " + heartCount + " Hearts from friends in " + gameName + "!"
+				title: "Received Gifts: Hearts",
+				body: "You have received " + heartCount + " Hearts from friends in " + gameName + "!",
+				number: heartCount
 			});
+
 			localNotify.remove("heart");
 		} else {
 			localNotify.add({
 				name: "heart",
 				action: "Accept",
+				title: "Received Gift: Heart",
 				body: "You have received a Heart from " + fromPlayer + " in " + gameName + "!"
 			});
 		}
@@ -77,143 +104,70 @@ function addHeartNotification(fromPlayer, gameName) {
 }
 ~~~
 
+## Handling Notifications
 
-## Handling Purchase Failures
-
-When purchases fail, the failure may be handled with the `billing.onPurchaseFail` callback:
-
-~~~
-function handleFailure(reason, item) {
-	if (reason !== "cancel") {
-		// Market is unavailable - User should turn off Airplane mode or find reception.
-	}
-
-	// Else: Item purchase canceled - No need to present a dialog in response.
-}
-
-billing.onFailure = handleFailure;
-~~~
-
-Handling these failures is *optional*.
-
-One way to respond is to pop up a modal dialog that says "please check that Airplane mode is disabled and try again later."  It may also be interesting to do some analytics on how often users cancel purchases or fail to make purchases.
-
-## Checking for Market Availability
-
-Purchases can fail to go through due to network failures or market unavailability.  You can verify that the market is available by checking `billing.isMarketAvailable` before displaying your in-app store.  You can also subscribe to a "MarketAvailable" event (see event documentation below).
+When users accept your app notification it will launch your game.  To discover
+if the game was launched from a notification or through selecting it from the
+app list, you can add an `onNotify` handler to the `localNotify` object:
 
 ~~~
-// In response to player clicking In-App Store button:
-
-if (!billing.isMarketAvailable) {
-	// Market is unavailable - User should turn off Airplane mode or find reception.
+localNotify.onNotify = function(evt) {
+	logger.log("Notification completed:", evt.name);
 }
 ~~~
 
-Checking for availability is entirely optional.
+## Removing Notifications
 
-## Requesting Purchases
+To remove all notifications from your game, call `localNotify.clear()`.
 
-All purchases are handled as consumables.  For this reason, it is up to you to make sure that players do not purchase ie. character unlocks two times as the billing plugin cannot differentiate those types of one-time upgrade -style purchases from consumable currency -style purchases.
+To remove a specific notification by name, call `localNotify.remove("name")`.
 
-When you request a purchase, a system modal will pop up that the user will interact with and may cancel.  Purchases may also fail for other reasons such as network outages.
+## Get Pending Notifications
 
-Kicking off a new purchase is done with the `billing.purchase` function:
-
-~~~
-// In response to player clicking the "5 coin purchase" button:
-
-billing.purchase("fiveCoins");
-~~~
-
-## Disabling Purchases
-
-The purchase callback may happen at any time, even during gameplay.  So it is a good idea to disable the callback when it is inopportune by setting it to null.  When you want to receive the callback events, just set it back to the handler and any queued events will be delivered as shown in this example code:
+To list any pending notifications that are scheduled to be delivered, use the
+`localNotify.list()` function:
 
 ~~~
-// When player enters game and should not be disturbed by purchase callbacks:
-function DisablePurchaseEvents() {
-	billing.onPurchase = null;
-	billing.onFailure = null;
-}
-
-// And when they return to the menu system:
-function EnablePurchaseEvents() {
-	billing.onPurchase = handlePurchase; // see definitions in examples above
-	billing.onFailure = handleFailure;
-}
-~~~
-
-# billing object
-
-## Events
-
-### "MarketAvailable"
-
-This event fires whenever market availability changes.  It is safe to ignore these events.
-
-~~~
-billing.on('MarketAvailable', function (available) {
-	if (available) {
-	} else {
+localNotify.list(function(notifications) {
+	for (var ii = 0; ii < notifications.length; ++ii) {
+		logger.log("Pending notification:", notifications[ii].name);
 	}
 });
 ~~~
 
-Read the [event system documentation](http://docs.gameclosure.com/api/event.html)
-for other ways to handle these events.
+## Get Notification by Name
+
+To get a pending notification by name, use the `localNotify.get("name")` function:
+
+~~~
+localNotify.get("name", function(notification) {
+	if (notification) {
+		logger.log("Notification body:", notification.body);
+	} else {
+		logger.log("Notification DNE");
+	}
+});
+~~~
+
+# localNotify object
 
 ## Members:
 
-### billing.isMarketAvailable
-
-+ `boolean` ---True when market is available.
-
-The market can become unreachable when network service is interrupted or if
-the mobile device enters Airplane mode.
-
-It is safe to disregard this flag.
-
-~~~
-if (billing.isMarketAvailable) {
-	logger.log("~~~ MARKET IS AVAILABLE");
-} else {
-	logger.log("~~~ MARKET IS NOT AVAILABLE");
-}
-~~~
-
-### billing.onPurchase (itemName)
+### localNotify.onNotify (evt)
 
 + `callback {function}` ---Set to your callback function.
-			The first argument will be the name of the item that should be credited to the player.
+			The first argument will be the object for the triggered notification.
 
-Called whenever a purchase completes.  This may also be called for a purchase that was outstanding from a previous session that had not been credited to the player yet.
-
-The callback function should not pop up the purchase success dialog while they are playing.  Setting the `billing.onPurchase` callback to **null** when purchases should not interrupt gameplay is recommended.
+Called whenever a local notification is accepted by the user.  This is the case
+for notifications that trigger re-engagement while the app is closed.  In this
+event the event(s) that triggered re-engagement will be delivered as soon as the
+`onNotify` callback is set.
 
 ~~~
-billing.onPurchase = function(itemName) {
-	logger.log("~~~ PURCHASED:", itemName);
+localNotify.onNotify = function(evt) {
+	logger.log("Got event:", evt.name);
 });
 ~~~
-
-### billing.onFailure (reason, itemName)
-
-+ `callback {function}` ---Set to your callback function.
-			The first argument will be the reason for the failure.
-			The second argument will be the name of the item that was requested.  Sometimes the name will be `null`.
-
-Unlike the success callback, failures are not queued up for delivery.  When failures are not handled they are not reported.
-
-The `itemName` argument to the callback is not reliable.  Sometimes it will be `null`.
-
-Handling failure events is optional.
-
-Common failure values:
-
-+ "cancel" : User canceled the purchase or item was unavailable.
-+ "service" : Not connected to the Market.  Try again later.
-+ Other Reasons : Was not able to make purchase request for some other reason.
 
 ## Methods:
 
