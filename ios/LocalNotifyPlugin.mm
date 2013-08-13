@@ -35,7 +35,17 @@
 			[[UIApplication sharedApplication] cancelLocalNotification:n];
 		}
 	}
+}
 
+- (void) onPause {
+	NSLog(@"{localNotify} Paused: Clearing icon badge counter");
+
+	[[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
+}
+
+- (void) onResume {
+	NSLog(@"{localNotify} Resumed: Clearing icon badge counter");
+	
 	[[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
 }
 
@@ -96,6 +106,8 @@
 			[[PluginManager get] dispatchJSEvent:[NSDictionary dictionaryWithObjectsAndKeys:
 												  @"LocalNotify",@"name",
 												  [self getNotificationObject:n],@"info", nil]];
+
+			[[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
 		} else {
 			NSString *name = [n.userInfo valueForKey:@"name"];
 			
