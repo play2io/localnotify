@@ -6,12 +6,12 @@ var LocalNotify = Class(Emitter, function (supr) {
 	var _activeCB = [];
 	var _getCB = {};
 	var _pending = [];
-	var onNotify;
+	var _onNotify;
 
 	var deliverPending = function() {
-		if (onNotify) {
+		if (_onNotify) {
 			for (var ii = 0; ii < _pending.length; ++ii) {
-				onNotify(_pending[ii]);
+				_onNotify(_pending[ii]);
 			}
 			_pending.length = 0;
 		}
@@ -20,15 +20,15 @@ var LocalNotify = Class(Emitter, function (supr) {
 	this.init = function() {
 		supr(this, 'init', arguments);
 
-		NATIVE.events.registerHandler("LocalNotifyPlugin", "List", function(evt) {
+		NATIVE.events.registerHandler("LocalNotifyList", function(evt) {
 			for (var ii = 0; ii < _activeCB.length; ++ii) {
 				_activeCB[ii](evt.list);
 			}
 			_activeCB.length = 0;
 		});
 
-		NATIVE.events.registerHandler("LocalNotifyPlugin", "Get", function(evt) {
-			var cbs = _getCB[evt.tag];
+		NATIVE.events.registerHandler("LocalNotifyGet", function(evt) {
+			var cbs = _getCB[evt.name];
 			if (cbs) {
 				for (var ii = 0; ii < cbs.length; ++ii) {
 					cbs[ii](evt.info);
@@ -37,9 +37,9 @@ var LocalNotify = Class(Emitter, function (supr) {
 			}
 		});
 
-		NATIVE.events.registerHandler("LocalNotifyPlugin", "OnNotify", function(evt) {
-			if (onNotify) {
-				onNotify(evt);
+		NATIVE.events.registerHandler("LocalNotify", function(evt) {
+			if (_onNotify) {
+				_onNotify(evt);
 			} else {
 				_pending.push(evt);
 			}
@@ -49,15 +49,15 @@ var LocalNotify = Class(Emitter, function (supr) {
 			set: function(f) {
 				// If a callback is being set,
 				if (typeof f === "function") {
-					onNotify = f;
+					_onNotify = f;
 
 					setTimeout(deliverPending, 0);
 				} else {
-					onNotify = null;
+					_onNotify = null;
 				}
 			},
 			get: function() {
-				return onNotify;
+				return _onNotify;
 			}
 		});
 
@@ -72,25 +72,25 @@ var LocalNotify = Class(Emitter, function (supr) {
 		_activeCB.push(next);
 	}
 
-	this.get = function(tag, next) {
+	this.get = function(name, next) {
 		NATIVE.plugins.sendEvent("LocalNotifyPlugin", "Get", JSON.stringify({
-			tag: tag
+			name: name
 		}));
 
-		if (_getCB[tag]) {
-			_getCB[tag].push(next);
+		if (_getCB[name]) {
+			_getCB[name].push(next);
 		} else {
-			_getCB[tag] = [next];
+			_getCB[name] = [next];
 		}
 	}
 
-	this.removeAll = function() {
-		NATIVE.plugins.sendEvent("LocalNotifyPlugin", "RemoveAll", "{}");
+	this.clear = function() {
+		NATIVE.plugins.sendEvent("LocalNotifyPlugin", "Clear", "{}");
 	}
 
-	this.remove = function(tag) {
+	this.remove = function(name) {
 		NATIVE.plugins.sendEvent("LocalNotifyPlugin", "Remove", JSON.stringify({
-			tag: tag
+			name: name
 		}));
 	}
 
