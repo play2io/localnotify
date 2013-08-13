@@ -17,10 +17,18 @@ var LocalNotify = Class(Emitter, function (supr) {
 		}
 	}
 
+	var UTCSecondsToDate = function(info) {
+		info.date = new Date(info.utc * 1000);
+	}
+
 	this.init = function() {
 		supr(this, 'init', arguments);
 
 		NATIVE.events.registerHandler("LocalNotifyList", function(evt) {
+			for (var ii = 0; ii < evt.list.length; ++ii) {
+				UTCSecondsToDate(evt.list[ii]);
+			}
+
 			for (var ii = 0; ii < _activeCB.length; ++ii) {
 				_activeCB[ii](evt.list);
 			}
@@ -28,20 +36,32 @@ var LocalNotify = Class(Emitter, function (supr) {
 		});
 
 		NATIVE.events.registerHandler("LocalNotifyGet", function(evt) {
-			var cbs = _getCB[evt.name];
+			var info = evt.info;
+
+			UTCSecondsToDate(info);
+
+			var cbs = _getCB[info.name];
 			if (cbs) {
 				for (var ii = 0; ii < cbs.length; ++ii) {
-					cbs[ii](evt.info);
+					cbs[ii](info);
 				}
 				cbs.length = 0;
 			}
 		});
 
 		NATIVE.events.registerHandler("LocalNotify", function(evt) {
+			var info = evt.info;
+
+			UTCSecondsToDate(info);
+
 			if (_onNotify) {
-				_onNotify(evt);
+				logger.log("{localNotify} Delivering event", info.name);
+
+				_onNotify(info);
 			} else {
-				_pending.push(evt);
+				logger.log("{localNotify} Pending event", info.name);
+
+				_pending.push(info);
 			}
 		});
 
@@ -95,6 +115,29 @@ var LocalNotify = Class(Emitter, function (supr) {
 	}
 
 	this.add = function(opts) {
+		// Inject date
+		var date = opts.date;
+		if (!date) {
+			date = new Date();
+		}
+		var time = date.getTime() / 1000;
+		if (opts.delay) {
+			var delay = opts.delay;
+			if (delay.seconds) {
+				time += delay.seconds;
+			}
+			if (delay.minutes) {
+				time += delay.minutes * 60;
+			}
+			if (delay.hours) {
+				time += delay.hours * 60 * 60;
+			}
+			if (delay.days) {
+				time += delay.days * 60 * 60 * 24;
+			}
+		}
+		opts.utc = time;
+
 		NATIVE.plugins.sendEvent("LocalNotifyPlugin", "Add", JSON.stringify(opts));
 	}
 });

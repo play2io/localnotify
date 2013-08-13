@@ -2,33 +2,56 @@
 
 This plugin supports local notifications on iOS and Android platforms.
 
+NOTE: Right now this is only working for iOS.  We will be revisiting it for Android soon.
+
 ## Overview
 
-Local notifications allow you to add messages to the phone's status area while
-your app is running.  They can appear either immediately or you may schedule the
-notifications to appear in the future.
-
-Immediate notifications may be useful to present information to a player while
-they are in the middle of gameplay.  For instance, if the player got an
-achievement while in the game this is one way to immediately present that
-information without disturbing them.
+Local notifications allow you to schedule messages to appear in the phone's
+status area while your app is in the background.
 
 When delayed by a number of days, notifications are often used by games as a
 re-engagement strategy.
 
-Notifications appear in the status area with a number of features:
+The following features are common between notification systems:
 
-+ action: Name of action for accepting notification. [iOS only]
-+ title: Title for alert is Android status area. [Android only]
 + text: Text describing the notification to the user.
 + delay: How far in the future to deliver the nofication (or immediately).
-+ icon: Major icon/photo to display for notification.
 + sound: A ringtone-like notification sound that alerts the user.
-+ number: Count of notifications represented by that one line.
++ number: Count of notifications represented by this one status line.
 
-For more overview see the
-[Android notification design pattern](http://developer.android.com/design/patterns/notifications.html)
-and the [iOS Local Notifications Guide](http://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Introduction.html#//apple_ref/doc/uid/TP40008194-CH1-SW1).
+Local notifications have slightly different uses based on the target device:
+
+#### iPhone/iPad
+
+On iOS devices, local notifications are only practically useful for scheduling
+notifications to appear in the iOS status area at some time in the future.
+
+When local notifications are delivered and your app is open, they do not present
+any visual indication.  Instead, the event is delivered to the `localNotify.onNotify`
+callback you can optionally specify (see below).  This means that notifications
+delivered while players are in the game essentially do nothing new or useful.
+
+Another difference on iOS is that the `number` field causes a badge to appear on
+your app icon after the notification fires.  As soon as your app is opened again
+the badge count will be cleared and any triggered notifications will be evacuated
+from the status list at the top of the screen.
+
+iOS-specific features:
+
++ action: Name of action for accepting notification. [iOS only]
+
+For additional information see the [iOS Local Notifications Guide](http://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Introduction.html#//apple_ref/doc/uid/TP40008194-CH1-SW1).
+
+#### Android
+
+Notifications appear in the status area with a number of features:
+
+Android-specific features:
+
++ title: Title for alert is Android status area. [Android only]
++ icon: Major icon/photo to display for notification. [Android only]
+
+For more overview see the [Android notification design pattern](http://developer.android.com/design/patterns/notifications.html) guide.
 
 ## Installation
 
@@ -63,7 +86,7 @@ Notification objects have the following schema:
 
 + `action {string}` (optional, iOS-only) : Displayed at phone unlock screen as "Unlock to -action-".
 + `title {string}` (optional, Android-only) : Displayed as a title for the status line in the status area.
-+ `icon {string}` (optional) : Path to a .PNG resource to use as an icon for the event.
++ `icon {string}` (optional, Android-only) : Path to a .PNG resource to use as an icon for the event.
 + `userDefined {object}` (optional) : User-defined object to store with the notification data.
 + `date {Date}` (optional) : Date when notification should trigger, or:
 + `delay {object}` (optional) : Convenience delay, a sum of:
