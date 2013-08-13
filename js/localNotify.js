@@ -2,32 +2,6 @@ import device;
 import event.Emitter as Emitter;
 import util.setProperty as setProperty;
 
-/*
-import plugins.localNotify as localNotify;
-
-localNotify.add({
-	name: "AlertName",
-	number: 1,
-	playSound: true,
-	customSound: "url.wav",
-	action: "Respond",
-	body: "Melissa has sent you her Heart in a box",
-	delay: {
-		seconds: 32,
-		minutes: 1.5,
-		hours: 2,
-		days: 1
-	},
-	icon: "url to png",
-	userDefined: {
-		crossPromo: false
-	}
-});
-
-localNotify.remove("AlertName");
-
-*/
-
 var LocalNotify = Class(Emitter, function (supr) {
 	var _activeCB = [];
 	var _getCB = {};
