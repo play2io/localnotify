@@ -169,12 +169,19 @@
 		NSLog(@"{localNotify} List requested");
 
 		NSArray *notifications = [[UIApplication sharedApplication] scheduledLocalNotifications];
-		for (int ii = 0, len = [notifications count]; ii < len; ++ii) {
+		int count = [notifications count];
+		
+		NSMutableArray *results = [NSMutableArray arrayWithCapacity:count];
+
+		for (int ii = 0; ii < count; ++ii) {
 			UILocalNotification *evt = [notifications objectAtIndex:ii];
-			NSString *evtName = [evt.userInfo valueForKey:@"name"];
-			
-			// TODO
+
+			[results setObject:[self getNotificationObject:evt] atIndexedSubscript:ii];
 		}
+
+		[[PluginManager get] dispatchJSEvent:[NSDictionary dictionaryWithObjectsAndKeys:
+											  @"LocalNotifyList",@"name",
+											  results,@"list", nil]];
 	}
 	@catch (NSException *exception) {
 		NSLog(@"{localNotify} WARNING: Exception during List: %@", exception);
