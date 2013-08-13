@@ -83,7 +83,7 @@ var myNotification = {
 	sound: "notify.wav",
 	action: "Unlock",
 	title: "Unlocked a New Level",
-	body: "You have blasted your way into the Carnage Kingdom!",
+	text: "You have blasted your way into the Carnage Kingdom!",
 	delay: {
 		seconds: 32,
 		minutes: 1.5,
@@ -117,7 +117,7 @@ notification appears:
 localNotify.add({
 	name: "HeartAlert",
 	number: 2,
-	body: "2 friends have sent you Hearts!"
+	text: "2 friends have sent you Hearts!"
 });
 ~~~
 
@@ -143,7 +143,7 @@ function addHeartNotification(fromPlayer, gameName) {
 				name: "hearts",
 				action: "Accept All",
 				title: "Received Gifts: Hearts",
-				body: "You have received " + heartCount + " Hearts from friends in " + gameName + "!",
+				text: "You have received " + heartCount + " Hearts from friends in " + gameName + "!",
 				number: heartCount
 			});
 
@@ -153,7 +153,7 @@ function addHeartNotification(fromPlayer, gameName) {
 				name: "heart",
 				action: "Accept",
 				title: "Received Gift: Heart",
-				body: "You have received a Heart from " + fromPlayer + " in " + gameName + "!",
+				text: "You have received a Heart from " + fromPlayer + " in " + gameName + "!",
 				number: 1
 			});
 		}
@@ -221,7 +221,7 @@ This function enables you to get information about a notification by name.
 ~~~
 localNotify.get("name", function(notification) {
 	if (notification) {
-		logger.log("Notification body:", notification.body);
+		logger.log("Notification text:", notification.text);
 	} else {
 		logger.log("Notification DNE");
 	}
@@ -272,7 +272,7 @@ localNotify.add({
 	name: "heart",
 	action: "Accept",
 	title: "Received Gift: Heart",
-	body: "You have received a Heart from " + fromPlayer + "!"
+	text: "You have received a Heart from " + fromPlayer + "!"
 });
 ~~~
 
