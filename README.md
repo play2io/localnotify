@@ -199,6 +199,10 @@ for notifications that trigger re-engagement while the app is closed.  In this
 event the event(s) that triggered re-engagement will be delivered as soon as the
 `onNotify` callback is set.
 
+There is no explicit way to determine if a notification was used to launch your
+app or if it timed out while your app was running.  It is only guaranteed that
+notifications will be delivered to this callback.
+
 ~~~
 localNotify.onNotify = function(evt) {
 	logger.log("Got event:", evt.name);
@@ -226,29 +230,6 @@ member.
 localNotify.list(function(notifications) {
 	for (var ii = 0; ii < notifications.length; ++ii) {
 		logger.log("Pending notification:", notifications[ii].name);
-	}
-});
-~~~
-
-### localNotify.getStarter (callback {function})
-
-Parameters
-:	1. `callback {function}` ---Callback function that will receive the info asynchronously.
-			The first argument will be the notification info or null.
-
-Returns
-:	1. `void`
-
-This function enables you to get the notification that started the app, if it
-was started by tapping on a notification.  This is useful for analytics.  You
-will also get a callback from .onNotify() about the event.
-
-~~~
-localNotify.getStarter(function(notification) {
-	if (notification) {
-		logger.log("Notification that started the app:", notification.name);
-	} else {
-		logger.log("No notification started the app");
 	}
 });
 ~~~
