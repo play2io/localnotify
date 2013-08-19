@@ -1,16 +1,5 @@
 <!--START_PLUGINS_MANIFEST-->
-	<!--LocalNotify-->
-	<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 <!--END_PLUGINS_MANIFEST-->
 <!--START_PLUGINS_APPLICATION-->
-	<!--LocalNotify-->
-	<receiver android:name="com.tealeaf.plugin.plugins.LocalNotifyPlugin" android:enabled="true">
-		<intent-filter>
-			<action android:name="android.intent.action.BOOT_COMPLETED" />
-		</intent-filter>
-		<intent-filter>
-			<action android:name="com.tealeaf.plugin.plugins.LocalNotifyPlugin.NOTIFICATION_MESSAGE" />
-		</intent-filter>
-	</receiver>
 <!--END_PLUGINS_APPLICATION-->
 

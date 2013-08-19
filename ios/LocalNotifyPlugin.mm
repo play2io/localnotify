@@ -257,7 +257,7 @@
 		id sound = [jsonObject valueForKey:@"sound"];
 		NSString *action = [jsonObject valueForKey:@"action"];
 		NSNumber *utc = [jsonObject valueForKey:@"utc"];
-		NSDictionary *userDefined = [jsonObject valueForKey:@"userDefined"];
+		NSString *userDefined = [jsonObject valueForKey:@"userDefined"];
 
 		// Construct notification from input
 		UILocalNotification *n = [[UILocalNotification alloc] init];

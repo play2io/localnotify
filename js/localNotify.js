@@ -17,8 +17,12 @@ var LocalNotify = Class(Emitter, function (supr) {
 		}
 	}
 
-	var UTCSecondsToDate = function(info) {
-		info.date = new Date(info.utc * 1000);
+	var UnpackInfo = function(info) {
+		try {
+			info.date = new Date(info.utc * 1000);
+			info.userDefined = JSON.parse(info.userDefined);
+		} catch (e) {
+		}
 	}
 
 	this.init = function() {
@@ -26,7 +30,7 @@ var LocalNotify = Class(Emitter, function (supr) {
 
 		NATIVE.events.registerHandler("LocalNotifyList", function(evt) {
 			for (var ii = 0; ii < evt.list.length; ++ii) {
-				UTCSecondsToDate(evt.list[ii]);
+				UnpackInfo(evt.list[ii]);
 			}
 
 			for (var ii = 0; ii < _activeCB.length; ++ii) {
@@ -38,7 +42,7 @@ var LocalNotify = Class(Emitter, function (supr) {
 		NATIVE.events.registerHandler("LocalNotifyGet", function(evt) {
 			var info = evt.info;
 
-			UTCSecondsToDate(info);
+			UnpackInfo(info);
 
 			var cbs = _getCB[info.name];
 			if (cbs) {
@@ -52,7 +56,7 @@ var LocalNotify = Class(Emitter, function (supr) {
 		NATIVE.events.registerHandler("LocalNotify", function(evt) {
 			var info = evt.info;
 
-			UTCSecondsToDate(info);
+			UnpackInfo(info);
 
 			if (_onNotify) {
 				logger.log("{localNotify} Delivering event", info.name);
@@ -137,6 +141,12 @@ var LocalNotify = Class(Emitter, function (supr) {
 			}
 		}
 		opts.utc = time;
+
+		if (typeof opts.userDefined === "object") {
+			opts.userDefined = JSON.stringify(opts.userDefined);
+		} else {
+			opts.userDefined = '{"value":"' + opts.userDefined + '"}';
+		}
 
 		NATIVE.plugins.sendEvent("LocalNotifyPlugin", "Add", JSON.stringify(opts));
 	}
