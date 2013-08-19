@@ -230,6 +230,29 @@ localNotify.list(function(notifications) {
 });
 ~~~
 
+### localNotify.getStarter (callback {function})
+
+Parameters
+:	1. `callback {function}` ---Callback function that will receive the info asynchronously.
+			The first argument will be the notification info or null.
+
+Returns
+:	1. `void`
+
+This function enables you to get the notification that started the app, if it
+was started by tapping on a notification.  This is useful for analytics.  You
+will also get a callback from .onNotify() about the event.
+
+~~~
+localNotify.getStarter(function(notification) {
+	if (notification) {
+		logger.log("Notification that started the app:", notification.name);
+	} else {
+		logger.log("No notification started the app");
+	}
+});
+~~~
+
 ### localNotify.get (name, callback {function})
 
 Parameters

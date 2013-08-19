@@ -47,7 +47,7 @@ var LocalNotify = Class(Emitter, function (supr) {
 			var cbs = _getCB[info.name];
 			if (cbs) {
 				for (var ii = 0; ii < cbs.length; ++ii) {
-					cbs[ii](info);
+					cbs[ii](evt.error ? null : info);
 				}
 				cbs.length = 0;
 			}

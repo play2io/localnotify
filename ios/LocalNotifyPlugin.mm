@@ -136,7 +136,7 @@
 	@try {
 		TeaLeafAppDelegate *app = (TeaLeafAppDelegate *)[[UIApplication sharedApplication] delegate];
 
-		[self reportNotification:(UILocalNotification *)app.launchNotification];
+		[self reportNotification:app.launchNotification];
 	}
 	@catch (NSException *exception) {
 		NSLog(@"{localNotify} WARNING: Exception during initialization: %@", exception);
@@ -194,9 +194,9 @@
 }
 
 - (void) Get:(NSDictionary *)jsonObject {
-	@try {
-		NSString *name = [jsonObject valueForKey:@"name"];
+	NSString *name = [jsonObject valueForKey:@"name"];
 
+	@try {
 		NSLog(@"{localNotify} Get requested for %@", name);
 
 		UILocalNotification *n = [self getNotificationByName:name];
@@ -204,6 +204,8 @@
 		if (n == nil) {
 			[[PluginManager get] dispatchJSEvent:[NSDictionary dictionaryWithObjectsAndKeys:
 												  @"LocalNotifyGet",@"name",
+												  [NSDictionary dictionaryWithObjectsAndKeys:
+												   name,@"name", nil],@"info",
 												  @"not found",@"error", nil]];
 		} else {
 			[[PluginManager get] dispatchJSEvent:[NSDictionary dictionaryWithObjectsAndKeys:
@@ -216,6 +218,8 @@
 		
 		[[PluginManager get] dispatchJSEvent:[NSDictionary dictionaryWithObjectsAndKeys:
 											  @"LocalNotifyGet",@"name",
+											  [NSDictionary dictionaryWithObjectsAndKeys:
+											   name,@"name", nil],@"info",
 											  exception,@"error", nil]];
 	}
 }

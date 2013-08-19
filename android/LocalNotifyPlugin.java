@@ -48,10 +48,10 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 	protected AlarmManager _alarmManager;
 	protected SharedPreferences _settings;
 	protected static LocalNotifyPlugin _plugin;
-	protected static Gson gson = new Gson();
-
-	protected boolean _active; // Activity is in foreground
-	protected boolean _ready; // JS told us it is ready for notifications
+	protected static Gson _gson = new Gson();
+	protected boolean _active;		// Activity is in foreground
+	protected boolean _ready;		// JS told us it is ready for notifications
+	protected String _launchName;	// Notification name used to launch app
 
 	final static String PREFS_NAME = "com.tealeaf.plugin.plugins.LocalNotifyPlugin.PREFERENCES";
 	final static String ACTION_NOTIFY = "com.tealeaf.plugin.plugins.LocalNotifyPlugin.CUSTOM_ACTION_NOTIFY";
@@ -179,6 +179,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 
 		// Cancel any existing alarm with the same name
 		cancelAlarm(n.name);
+		removeAlarm(n.name);
 
 		// If should be delivered right now,
 		if (n.utc <= CURRENT_UTC) {
@@ -202,6 +203,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			intent.putExtra("icon", n.icon);
 			intent.putExtra("userDefined", n.userDefined);
 			intent.putExtra("utc", n.utc);
+			intent.putExtra("fromLocalNotify", true);
 
 			_alarmManager.set(AlarmManager.RTC_WAKEUP, n.utc * 1000, PendingIntent.getBroadcast(_context, ALARM_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT));
 		}
@@ -232,13 +234,9 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		intent.addCategory(name); // for cancel
 
 		_alarmManager.cancel(PendingIntent.getBroadcast(_context, ALARM_CODE, intent, PendingIntent.FLAG_CANCEL_CURRENT));
-
-		removeAlarm(name);
 	}
 
-	public void deliverAlarm(NotificationData n) {
-		removeAlarm(n.name);
-
+	public void deliverAlarmToJS(NotificationData n) {
 		// Deliver to JS without puting it in the status bar
 		if (!_ready) {
 			logger.log("{localNotify} JS not ready so pending alarm", n.name);
@@ -247,6 +245,12 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			logger.log("{localNotify} Delivering alarm to JS:", n.name);
 			EventQueue.pushEvent(new NotifyEvent(n));
 		}
+	}
+
+	public void deliverAlarm(NotificationData n) {
+		removeAlarm(n.name);
+
+		deliverAlarmToJS(n);
 
 		if (!_active) {
 			// Place in status bar from background
@@ -318,14 +322,18 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			String scheduledAlarms = _settings.getString("ScheduledAlarms", "");
 
 			if (!scheduledAlarms.equals("")) {
-				ScheduledData old = gson.fromJson(scheduledAlarms, ScheduledData.class);
+				ScheduledData old = _gson.fromJson(scheduledAlarms, ScheduledData.class);
 
 				logger.log("{localNotify} Recovering", old.list.size(), "alarms");
 
 				final int CURRENT_UTC = (int)( System.currentTimeMillis() / 1000 ); // seconds
 
 				for (NotificationData n : old.list) {
-					if (n.utc >= CURRENT_UTC) {
+					// If was launched by this one,
+					if (_launchName != null && n.name.equals(_launchName)) {
+						logger.log("{localNotify} Delivering startup notification to JS:", n.name);
+						deliverAlarmToJS(n);
+					} else if (n.utc >= CURRENT_UTC) {
 						addAlarm(n);
 					} else {
 						logger.log("{localNotify} Discarding old expired alarm:", n.name);
@@ -344,7 +352,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			ScheduledData box = new ScheduledData();
 			box.list = _scheduled;
 
-			String alarms = gson.toJson(box);
+			String alarms = _gson.toJson(box);
 
 			SharedPreferences.Editor editor = _settings.edit();
 			editor.putString("ScheduledAlarms", alarms);
@@ -361,8 +369,21 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		_plugin = this;
 	}
 
-	public void onCreate(Activity activity, Bundle savedInstanceState) {
-		logger.log("{localNotify} Initializing");
+	public void onCreate(Activity activity, Bundle bundle) {
+		try {
+			logger.log("{localNotify} Initializing");
+
+			_launchName = null;
+
+			// If was launched from local notification,
+			if (bundle != null && bundle.containsKey("fromLocalNotify")) {
+				_launchName = bundle.getString("name");
+
+				logger.log("{localNotify} Launched from notification", _launchName);
+			}
+		} catch (Exception e) {
+			logger.log("{localNotify} WARNING: Exception while reading create intent:", e);
+		}
 
 		_activity = activity;
 	}
@@ -470,6 +491,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			logger.log("{localNotify} Remove requested for", NAME);
 
 			cancelAlarm(NAME);
+			removeAlarm(NAME);
 		} catch (Exception e) {
 			logger.log("{localNotify} WARNING: Exception in remove:", e);
 			e.printStackTrace();
