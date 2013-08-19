@@ -43,15 +43,15 @@ import android.util.Base64;
 import com.google.gson.Gson;
 
 public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
-	Context _context;
-	Activity _activity;
-	AlarmManager _alarmManager;
-	SharedPreferences _settings;
-	static LocalNotifyPlugin _plugin;
+	protected Context _context;
+	protected Activity _activity;
+	protected AlarmManager _alarmManager;
+	protected SharedPreferences _settings;
+	protected static LocalNotifyPlugin _plugin;
 	protected static Gson gson = new Gson();
 
-	boolean _active; // Activity is in foreground
-	boolean _ready; // JS told us it is ready for notifications
+	protected boolean _active; // Activity is in foreground
+	protected boolean _ready; // JS told us it is ready for notifications
 
 	final static String PREFS_NAME = "com.tealeaf.plugin.plugins.LocalNotifyPlugin.PREFERENCES";
 	final static String ACTION_NOTIFY = "com.tealeaf.plugin.plugins.LocalNotifyPlugin.CUSTOM_ACTION_NOTIFY";
@@ -59,9 +59,10 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 	final static int ALARM_CODE = 0;
 
 	public class NotificationData {
-		public String name, text, sound, title, icon, userDefined;
-		public int number;
-		public long utc; // seconds
+		String name, text, sound, title, icon, userDefined;
+		boolean vibrate;
+		int number;
+		long utc; // seconds
 	}
 
 	public class ScheduledData {
@@ -128,6 +129,18 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 	}
 
 	public static void showNotification(Context context, NotificationData info) {
+		int defaults = Notification.DEFAULT_LIGHTS;
+
+		// If vibration is specified,
+		if (info.vibrate) {
+			defaults |= Notification.DEFAULT_VIBRATE;
+		}
+
+		// If sound is specified,
+		if (info.sound != null && !info.sound.isEmpty()) {
+			defaults |= Notification.DEFAULT_SOUND;
+		}
+
 		NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
 			.setAutoCancel(true)
 			.setSmallIcon(context.getResources().getIdentifier("icon", "drawable", context.getPackageName()))
@@ -135,7 +148,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			.setContentText(info.text)
 			.setTicker(info.title)
 			.setOnlyAlertOnce(false)
-			.setDefaults(Notification.DEFAULT_LIGHTS | Notification.DEFAULT_VIBRATE | Notification.DEFAULT_SOUND);
+			.setDefaults(defaults);
 
 		// TODO: Icon and sound
 
@@ -148,6 +161,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 
 		Notification notification = builder.build();
 
+		// If number should be set,
 		if (info.number > 1) {
 			notification.number = info.number;
 		}
@@ -183,6 +197,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			intent.putExtra("text", n.text);
 			intent.putExtra("number", n.number);
 			intent.putExtra("sound", n.sound);
+			intent.putExtra("vibrate", n.vibrate);
 			intent.putExtra("title", n.title);
 			intent.putExtra("icon", n.icon);
 			intent.putExtra("userDefined", n.userDefined);
@@ -279,6 +294,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 					n.text = intent.getStringExtra("text");
 					n.number = intent.getIntExtra("number", 0);
 					n.sound = intent.getStringExtra("sound");
+					n.vibrate = intent.getBooleanExtra("vibrate", false);
 					n.title = intent.getStringExtra("title");
 					n.icon = intent.getStringExtra("icon");
 					n.userDefined = intent.getStringExtra("userDefined");
@@ -464,13 +480,14 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		try {
 			JSONObject jsonObject = new JSONObject(jsonData);
 			final String NAME = jsonObject.getString("name");
-			final String TEXT = jsonObject.getString("text");
-			final int NUMBER = jsonObject.getInt("number");
-			final String SOUND = jsonObject.getString("sound");
-			final String TITLE = jsonObject.getString("title");
-			final String ICON = jsonObject.getString("icon");
-			final int UTC = jsonObject.getInt("utc"); // seconds
-			final String USER_DEFINED = jsonObject.getString("userDefined");
+			final String TEXT = jsonObject.optString("text", "");
+			final int NUMBER = jsonObject.optInt("number", 0);
+			final String SOUND = jsonObject.optString("sound", "");
+			final boolean VIBRATE = jsonObject.optBoolean("vibrate", false);
+			final String TITLE = jsonObject.optString("title", "");
+			final String ICON = jsonObject.optString("icon", "");
+			final int UTC = jsonObject.optInt("utc", 0); // seconds
+			final String USER_DEFINED = jsonObject.optString("userDefined", "{}");
 
 			// Build notification object
 			NotificationData n = new NotificationData();
@@ -480,6 +497,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			n.sound = new String(SOUND);
 			n.title = new String(TITLE);
 			n.icon = new String(ICON);
+			n.vibrate = VIBRATE;
 			n.userDefined = new String(USER_DEFINED);
 			n.utc = UTC;
 

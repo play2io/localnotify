@@ -50,6 +50,7 @@ Android-specific features:
 
 + title: Title for alert is Android status area. [Android only]
 + icon: Major icon/photo to display for notification. [Android only]
++ vibrate: Vibrate the phone on receipt? [Android only]
 
 For more overview see the [Android notification design pattern](http://developer.android.com/design/patterns/notifications.html) guide.
 
@@ -87,6 +88,7 @@ Notification objects have the following schema:
 + `action {string}` (optional, iOS-only) : Displayed at phone unlock screen as "Unlock to -action-".
 + `title {string}` (optional, Android-only) : Displayed as a title for the status line in the status area.
 + `icon {string}` (optional, Android-only) : Path to a .PNG resource to use as an icon for the event.
++ `vibrate {boolean}` (optional, Android-only) : Should vibrate on alarm?
 + `userDefined {object}` (optional) : User-defined object to store with the notification data.
 + `date {Date}` (optional) : Date when notification should trigger, or:
 + `delay {object}` (optional) : Convenience delay, a sum of:
@@ -104,6 +106,7 @@ var myNotification = {
 	name: "unlock",
 	number: 0,
 	sound: "notify.wav",
+	vibrate: true,
 	action: "Unlock",
 	title: "Unlocked a New Level",
 	text: "You have blasted your way into the Carnage Kingdom!",
@@ -157,7 +160,7 @@ notification to avoid overwhelming the player by using the following code:
 ~~~
 function addHeartNotification(fromPlayer, gameName) {
 	// Check if single-heart notification exists
-	localNotify.get("heart", function(heart) {
+	localNotify.get("hearts", function(heart) {
 		if (heart) {
 			var heartCount = heart.count + 1;
 
@@ -169,11 +172,9 @@ function addHeartNotification(fromPlayer, gameName) {
 				text: "You have received " + heartCount + " Hearts from friends in " + gameName + "!",
 				number: heartCount
 			});
-
-			localNotify.remove("heart");
 		} else {
 			localNotify.add({
-				name: "heart",
+				name: "hearts",
 				action: "Accept",
 				title: "Received Gift: Heart",
 				text: "You have received a Heart from " + fromPlayer + " in " + gameName + "!",
