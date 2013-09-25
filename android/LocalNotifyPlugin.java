@@ -61,6 +61,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 	public class NotificationData {
 		String name, text, sound, title, icon, userDefined;
 		boolean vibrate;
+		boolean launched;
 		int number;
 		long utc; // seconds
 	}
@@ -155,6 +156,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		Intent intent = context.getPackageManager().getLaunchIntentForPackage(context.getPackageName());
 		intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
 		intent.putExtra("name", info.name);
+		intent.putExtra("fromLocalNotify", true);
 
 		PendingIntent pending = PendingIntent.getActivity(context, STATUS_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 		builder.setContentIntent(pending);
@@ -170,8 +172,6 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		notificationManager.notify(STATUS_CODE, notification);
 
 		// TODO: Clear notifications in status bar
-		// TODO: Deliver background shown notifications to JS when brought to foreground
-		// TODO: Detect if an alarm launched the app
 	}
 
 	public void addAlarm(NotificationData n) {
@@ -238,11 +238,18 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 
 	public void deliverAlarmToJS(NotificationData n) {
 		// Deliver to JS without puting it in the status bar
-		if (!_ready) {
+		if (!_ready || !_active) {
 			logger.log("{localNotify} JS not ready so pending alarm", n.name);
 			_pending.add(n);
 		} else {
-			logger.log("{localNotify} Delivering alarm to JS:", n.name);
+			if (n.name.equals(_launchName)) {
+				n.launched = true;
+				_launchName = null;
+				logger.log("{localNotify} Delivering launch alarm to JS:", n.name);
+			} else {
+				logger.log("{localNotify} Delivering alarm to JS:", n.name);
+			}
+
 			EventQueue.pushEvent(new NotifyEvent(n));
 		}
 	}
@@ -287,7 +294,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		// NOTE: This is called on a new empty instance of the class
 		if (action.equals("android.intent.action.BOOT_COMPLETED")) {
 			// TODO: Handle this
-		} if (action.equals(ACTION_NOTIFY)) {
+		} else if (action.equals(ACTION_NOTIFY)) {
 			if (_plugin != null) {
 				_plugin.broadcastReceived(context, intent);
 			} else {
@@ -303,6 +310,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 					n.icon = intent.getStringExtra("icon");
 					n.userDefined = intent.getStringExtra("userDefined");
 					n.utc = intent.getLongExtra("utc", 0);
+					n.launched = false;
 
 					logger.log("{localNotify} Showing notification while inactive:", n.name);
 
@@ -390,12 +398,13 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 
 	public void onStart() {
 		_active = true;
-
 		readPreferences();
+		DeliverPending();
 	}
 
 	public void onResume() {
 		_active = true;
+		DeliverPending();
 	}
 
 	public void onPause() {
@@ -408,8 +417,17 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 
 	public void onDestroy() {
 		_active = false;
-
 		_plugin = null;
+	}
+
+	public void DeliverPending() {
+		if (_ready && _active) {
+			for (NotificationData n : _pending) {
+				deliverAlarm(n);
+			}
+
+			_pending.clear();
+		}
 	}
 
 	public void Ready(String jsonData) {
@@ -417,12 +435,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			logger.log("{localNotify} Ready");
 
 			_ready = true;
-
-			for (NotificationData n : _pending) {
-				deliverAlarm(n);
-			}
-
-			_pending.clear();
+			DeliverPending();
 		} catch (Exception e) {
 			logger.log("{localNotify} WARNING: Exception in ready:", e);
 			e.printStackTrace();
@@ -522,6 +535,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			n.vibrate = VIBRATE;
 			n.userDefined = new String(USER_DEFINED);
 			n.utc = UTC;
+			n.launched = false;
 
 			addAlarm(n);
 		} catch (Exception e) {
@@ -534,6 +548,21 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 	}
 
 	public void onNewIntent(Intent intent) {
+		String action = intent.getAction();
+
+		// If looking at launch intent,
+		if (action.equals("android.intent.action.MAIN")) {
+			final boolean FROM_LOCALNOTIFY = intent.getBooleanExtra("fromLocalNotify", false);
+
+			// If launched from a notification,
+			if (FROM_LOCALNOTIFY) {
+				final String NAME = intent.getStringExtra("name");
+
+				logger.log("{localNotify} App launched from notification:", NAME);
+
+				_launchName = NAME;
+			}
+		}
 	}
 
 	public void setInstallReferrer(String referrer) {
