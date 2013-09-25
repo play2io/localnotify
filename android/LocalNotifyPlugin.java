@@ -62,6 +62,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		String name, text, sound, title, icon, userDefined;
 		boolean vibrate;
 		boolean launched;
+		boolean shown;
 		int number;
 		long utc; // seconds
 	}
@@ -131,6 +132,8 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 
 	public static void showNotification(Context context, NotificationData info) {
 		int defaults = Notification.DEFAULT_LIGHTS;
+
+		info.shown = true;
 
 		// If vibration is specified,
 		if (info.vibrate) {
@@ -311,6 +314,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 					n.userDefined = intent.getStringExtra("userDefined");
 					n.utc = intent.getLongExtra("utc", 0);
 					n.launched = false;
+					n.shown = false;
 
 					logger.log("{localNotify} Showing notification while inactive:", n.name);
 
@@ -536,6 +540,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			n.userDefined = new String(USER_DEFINED);
 			n.utc = UTC;
 			n.launched = false;
+			n.shown = false;
 
 			addAlarm(n);
 		} catch (Exception e) {
