@@ -200,6 +200,7 @@ event the event(s) that triggered re-engagement will be delivered as soon as the
 `onNotify` callback is set.
 
 If `evt.launched` is true, then the notification caused your app to launch.
+If `evt.shown` is true, then the notification was shown in the status bar.
 
 ~~~
 localNotify.onNotify = function(evt) {

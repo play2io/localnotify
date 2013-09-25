@@ -10,8 +10,9 @@
 - (UILocalNotification *) getNotificationByName:(NSString *)name;
 - (void) cancelNotificationByName:(NSString *)name;
 
-- (NSDictionary *) getNotificationObject:(UILocalNotification *)notification;
+- (NSDictionary *) getNotificationObject:(UILocalNotification *)notification didLaunch:(bool)didLaunch shown:(bool)shown;
 
-- (void) reportNotification:(UILocalNotification *)notification;
+- (void) reportNotification:(UILocalNotification *)notification didLaunch:(bool)didLaunch shown:(bool)shown;
 
 @end
+
