@@ -81,7 +81,7 @@
 	return nil;
 }
 
-- (NSDictionary *) getNotificationObject:(UILocalNotification *)n {
+- (NSDictionary *) getNotificationObject:(UILocalNotification *)n didLaunch:(bool)didLaunch {
 	// Convert fireDate to UTC integer in seconds
 	NSNumber *utc = nil;
 	if (n.fireDate != nil) {
@@ -95,17 +95,18 @@
 			(n.alertAction != nil) ? n.alertAction : [NSNull null],@"action",
 			(n.alertBody != nil) ? n.alertBody : [NSNull null],@"text",
 			(utc != nil) ? utc : [NSNull null],@"utc",
+			(didLaunch ? kCFBooleanTrue : kCFBooleanFalse),@"launched",
 			[n.userInfo valueForKey:@"userDefined"],@"userDefined", nil];
 }
 
-- (void) reportNotification:(UILocalNotification *)n {
+- (void) reportNotification:(UILocalNotification *)n didLaunch:(bool)didLaunch {
 	if (n != nil) {
 		if (self.readyForNotifications == YES) {
 			NSLog(@"{localNotify} Reporting local notification");
 
 			[[PluginManager get] dispatchJSEvent:[NSDictionary dictionaryWithObjectsAndKeys:
 												  @"LocalNotify",@"name",
-												  [self getNotificationObject:n],@"info", nil]];
+												  [self getNotificationObject:n didLaunch:didLaunch],@"info", nil]];
 
 			[[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
 		} else {
@@ -123,20 +124,26 @@
 
 			NSLog(@"{localNotify} Storing new local notification");
 
-			[self.pendingNotifications addObject:n];
+			[self.pendingNotifications addObject:[NSDictionary dictionaryWithObjectsAndKeys:
+												  n,@"notification",
+												  (didLaunch ? kCFBooleanTrue : kCFBooleanFalse),@"launched", nil]];
 		}
 	}
 }
 
 - (void) didReceiveLocalNotification:(UILocalNotification *)notification application:(UIApplication *)app {
-	[self reportNotification:notification];
+	// Detect if notification launched the app
+	bool didLaunch = app.applicationState == UIApplicationStateInactive ||
+					 app.applicationState == UIApplicationStateBackground;
+
+	[self reportNotification:notification didLaunch:didLaunch];
 }
 
 - (void) initializeWithManifest:(NSDictionary *)manifest appDelegate:(TeaLeafAppDelegate *)appDelegate {
 	@try {
 		TeaLeafAppDelegate *app = (TeaLeafAppDelegate *)[[UIApplication sharedApplication] delegate];
 
-		[self reportNotification:app.launchNotification];
+		[self reportNotification:app.launchNotification didLaunch:true];
 	}
 	@catch (NSException *exception) {
 		NSLog(@"{localNotify} WARNING: Exception during initialization: %@", exception);
@@ -152,8 +159,9 @@
 
 		// Send all pending
 		for (int ii = 0, len = [self.pendingNotifications count]; ii < len; ++ii) {
-			UILocalNotification *n = [self.pendingNotifications objectAtIndex:ii];
-			[self reportNotification:n];
+			NSDictionary *dict = [self.pendingNotifications objectAtIndex:ii];
+			UILocalNotification *n = [dict objectForKey:@"notification"];
+			[self reportNotification:n didLaunch:[dict objectForKey:@"launched"]];
 		}
 
 		// Remove pending
@@ -176,7 +184,7 @@
 		for (int ii = 0; ii < count; ++ii) {
 			UILocalNotification *evt = [notifications objectAtIndex:ii];
 
-			[results setObject:[self getNotificationObject:evt] atIndexedSubscript:ii];
+			[results setObject:[self getNotificationObject:evt didLaunch:false] atIndexedSubscript:ii];
 		}
 
 		[[PluginManager get] dispatchJSEvent:[NSDictionary dictionaryWithObjectsAndKeys:
@@ -210,7 +218,7 @@
 		} else {
 			[[PluginManager get] dispatchJSEvent:[NSDictionary dictionaryWithObjectsAndKeys:
 												  @"LocalNotifyGet",@"name",
-												  [self getNotificationObject:n],@"info", nil]];
+												  [self getNotificationObject:n didLaunch:false],@"info", nil]];
 		}
 	}
 	@catch (NSException *exception) {

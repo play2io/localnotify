@@ -199,13 +199,15 @@ for notifications that trigger re-engagement while the app is closed.  In this
 event the event(s) that triggered re-engagement will be delivered as soon as the
 `onNotify` callback is set.
 
-There is no explicit way to determine if a notification was used to launch your
-app or if it timed out while your app was running.  It is only guaranteed that
-notifications will be delivered to this callback.
+If `evt.launched` is true, then the notification caused your app to launch.
 
 ~~~
 localNotify.onNotify = function(evt) {
-	logger.log("Got event:", evt.name);
+	if (evt.launched) {
+		logger.log("Got event:", evt.name, "which launched the app");
+	} else {
+		logger.log("Got event:", evt.name);
+	}
 });
 ~~~
 
