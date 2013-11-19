@@ -369,9 +369,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			SharedPreferences.Editor editor = _settings.edit();
 			editor.putString("ScheduledAlarms", alarms);
 
-			if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.GINGERBREAD) {
-				PreferencesWrapper.runApply(editor);
-			} else {
+			if (!PreferencesWrapper.runApply(editor)) {
 				editor.commit();
 			}
 		} catch (Exception e) {
