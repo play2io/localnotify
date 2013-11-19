@@ -141,7 +141,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		}
 
 		// If sound is specified,
-		if (info.sound != null && !info.sound.isEmpty()) {
+		if (info.sound != null && !"".equals(info.sound.trim())) { // NOTE: API level 8 does not support isEmpty
 			defaults |= Notification.DEFAULT_SOUND;
 		}
 
