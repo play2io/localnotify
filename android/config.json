@@ -1,6 +1,7 @@
 {
 		"copyFiles": [
-			"LocalNotifyPlugin.java"
+			"LocalNotifyPlugin.java",
+			"PreferencesWrapper.java"
 		],
 		"libraries": [
 		],
