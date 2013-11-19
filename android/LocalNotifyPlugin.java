@@ -368,7 +368,12 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 
 			SharedPreferences.Editor editor = _settings.edit();
 			editor.putString("ScheduledAlarms", alarms);
-			editor.apply();
+
+			if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.GINGERBREAD) {
+				editor.apply();
+			} else {
+				editor.commit();
+			}
 		} catch (Exception e) {
 			logger.log("{localNotify} WARNING: Exception while serializing scheduled alarms:", e);
 		}
