@@ -1,5 +1,6 @@
 #import "LocalNotifyPlugin.h"
 #import <UIKit/UILocalNotification.h>
+#import "platform/log.h"
 
 // TODO: Notifications will get lost if JavaScript never requests them
 
@@ -30,7 +31,7 @@
 
 		// If expired,
 		if ([n.fireDate timeIntervalSinceNow] <= 0) {
-			NSLog(@"{localNotify} Canceling expired notification");
+			NSLOG(@"{localNotify} Canceling expired notification");
 
 			[[UIApplication sharedApplication] cancelLocalNotification:n];
 		}
@@ -38,13 +39,13 @@
 }
 
 - (void) onPause {
-	NSLog(@"{localNotify} Paused: Clearing icon badge counter");
+	NSLOG(@"{localNotify} Paused: Clearing icon badge counter");
 
 	[[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
 }
 
 - (void) onResume {
-	NSLog(@"{localNotify} Resumed: Clearing icon badge counter");
+	NSLOG(@"{localNotify} Resumed: Clearing icon badge counter");
 	
 	[[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
 }
@@ -103,7 +104,7 @@
 - (void) reportNotification:(UILocalNotification *)n didLaunch:(bool)didLaunch shown:(bool)shown {
 	if (n != nil) {
 		if (self.readyForNotifications == YES) {
-			NSLog(@"{localNotify} Reporting local notification");
+			NSLOG(@"{localNotify} Reporting local notification");
 
 			[[PluginManager get] dispatchJSEvent:[NSDictionary dictionaryWithObjectsAndKeys:
 												  @"LocalNotify",@"name",
@@ -118,12 +119,12 @@
 				NSString *evtName = [evt.userInfo valueForKey:@"name"];
 
 				if ((evtName != nil) && [name caseInsensitiveCompare:evtName] == NSOrderedSame) {
-					NSLog(@"{localNotify} Refusing to store the same local notification twice");
+					NSLOG(@"{localNotify} Refusing to store the same local notification twice");
 					return;
 				}
 			}
 
-			NSLog(@"{localNotify} Storing new local notification");
+			NSLOG(@"{localNotify} Storing new local notification");
 
 			[self.pendingNotifications addObject:[NSDictionary dictionaryWithObjectsAndKeys:
 												  n,@"notification",
@@ -147,13 +148,13 @@
 		[self reportNotification:app.launchNotification didLaunch:true shown:true];
 	}
 	@catch (NSException *exception) {
-		NSLog(@"{localNotify} WARNING: Exception during initialization: %@", exception);
+		NSLOG(@"{localNotify} WARNING: Exception during initialization: %@", exception);
 	}
 }
 
 - (void) Ready:(NSDictionary *)jsonObject {
 	@try {
-		NSLog(@"{localNotify} Ready received.  Sending queued events");
+		NSLOG(@"{localNotify} Ready received.  Sending queued events");
 
 		// Flag ready
 		self.readyForNotifications = YES;
@@ -169,13 +170,13 @@
 		[self.pendingNotifications removeAllObjects];
 	}
 	@catch (NSException *exception) {
-		NSLog(@"{localNotify} WARNING: Exception during Ready: %@", exception);
+		NSLOG(@"{localNotify} WARNING: Exception during Ready: %@", exception);
 	}
 }
 
 - (void) List:(NSDictionary *)jsonObject {
 	@try {
-		NSLog(@"{localNotify} List requested");
+		NSLOG(@"{localNotify} List requested");
 
 		NSArray *notifications = [[UIApplication sharedApplication] scheduledLocalNotifications];
 		int count = [notifications count];
@@ -193,7 +194,7 @@
 											  results,@"list", nil]];
 	}
 	@catch (NSException *exception) {
-		NSLog(@"{localNotify} WARNING: Exception during List: %@", exception);
+		NSLOG(@"{localNotify} WARNING: Exception during List: %@", exception);
 
 		[[PluginManager get] dispatchJSEvent:[NSDictionary dictionaryWithObjectsAndKeys:
 											  @"LocalNotifyList",@"name",
@@ -206,7 +207,7 @@
 	NSString *name = [jsonObject valueForKey:@"name"];
 
 	@try {
-		NSLog(@"{localNotify} Get requested for %@", name);
+		NSLOG(@"{localNotify} Get requested for %@", name);
 
 		UILocalNotification *n = [self getNotificationByName:name];
 
@@ -223,7 +224,7 @@
 		}
 	}
 	@catch (NSException *exception) {
-		NSLog(@"{localNotify} WARNING: Exception during Get: %@", exception);
+		NSLOG(@"{localNotify} WARNING: Exception during Get: %@", exception);
 		
 		[[PluginManager get] dispatchJSEvent:[NSDictionary dictionaryWithObjectsAndKeys:
 											  @"LocalNotifyGet",@"name",
@@ -235,14 +236,14 @@
 
 - (void) Clear:(NSDictionary *)jsonObject {
 	@try {
-		NSLog(@"{localNotify} Clearing all notifications");
+		NSLOG(@"{localNotify} Clearing all notifications");
 
 		[[UIApplication sharedApplication] cancelAllLocalNotifications];
 
 		[[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
 	}
 	@catch (NSException *exception) {
-		NSLog(@"{localNotify} WARNING: Exception during Clear: %@", exception);
+		NSLOG(@"{localNotify} WARNING: Exception during Clear: %@", exception);
 	}
 }
 
@@ -250,12 +251,12 @@
 	@try {
 		NSString *name = [jsonObject valueForKey:@"name"];
 
-		NSLog(@"{localNotify} Remove requested for %@", name);
+		NSLOG(@"{localNotify} Remove requested for %@", name);
 
 		[self cancelNotificationByName:name];
 	}
 	@catch (NSException *exception) {
-		NSLog(@"{localNotify} WARNING: Exception during Remove: %@", exception);
+		NSLOG(@"{localNotify} WARNING: Exception during Remove: %@", exception);
 	}
 }
 
@@ -263,7 +264,7 @@
 	@try {
 		NSString *name = [jsonObject valueForKey:@"name"];
 
-		NSLog(@"{localNotify} Add requested for %@", name);
+		NSLOG(@"{localNotify} Add requested for %@", name);
 
 		NSString *text = [jsonObject valueForKey:@"text"];
 		NSNumber *number = [jsonObject valueForKey:@"number"];
@@ -298,7 +299,7 @@
 
 			// If date is in the past,
 			if ([fireDate compare:[NSDate date]] == NSOrderedAscending) {
-				NSLog(@"{localNotify} Adding scheduled event %@ date in the past, so scheduling it immediately", name);
+				NSLOG(@"{localNotify} Adding scheduled event %@ date in the past, so scheduling it immediately", name);
 
 				utc = nil;
 			} else {
@@ -318,7 +319,7 @@
 		}
 	}
 	@catch (NSException *exception) {
-		NSLog(@"{localNotify} WARNING: Exception during Add: %@", exception);
+		NSLOG(@"{localNotify} WARNING: Exception during Add: %@", exception);
 	}
 }
 
