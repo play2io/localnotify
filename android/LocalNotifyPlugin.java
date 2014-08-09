@@ -283,7 +283,20 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		}
 
 		if (info == null) {
-			logger.log("{localNotify} Received unscheduled alarm for", NAME);
+			// no scheduled event with this name -- create one from the intent
+			NotificationData n = new NotificationData();
+			n.name = NAME;
+			n.text = intent.getStringExtra("text");
+			n.number = intent.getIntExtra("number", 1);
+			n.sound = intent.getStringExtra("sound");
+			n.title = intent.getStringExtra("title");
+			n.icon = intent.getStringExtra("icon");
+			n.vibrate = intent.getBooleanExtra("vibrate", false);
+			n.userDefined = intent.getStringExtra("userDefined");
+
+			deliverAlarm(n);
+
+			//logger.log("{localNotify} Received unscheduled alarm for", NAME);
 		} else {
 			logger.log("{localNotify} Alarm triggered:", NAME);
 			deliverAlarm(info);
