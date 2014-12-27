@@ -3,7 +3,8 @@ import event.Emitter as Emitter;
 import util.setProperty as setProperty;
 
 var nativeSendEvent = NATIVE && NATIVE.plugins && bind(NATIVE.plugins, 'sendEvent') || function () {};
-var nativeRegisterHandler = NATIVE && NATIVE.registerHandler && bind(NATIVE.events, 'registerHandler') || function () {};
+var nativeRegisterHandler = NATIVE && NATIVE.events.registerHandler && bind(NATIVE.events, 'registerHandler') || function () {};
+
 
 var LocalNotify = Class(Emitter, function (supr) {
 	var _activeCB = [];
