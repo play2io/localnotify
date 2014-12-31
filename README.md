@@ -15,7 +15,6 @@ The following features are common between notification systems:
 + text: Text describing the notification to the user.
 + delay: How far in the future to deliver the nofication (or immediately).
 + sound: A ringtone-like notification sound that alerts the user.
-+ number: Count of notifications represented by this one status line.
 
 Local notifications have slightly different uses based on the target device:
 
@@ -25,15 +24,8 @@ On iOS devices, local notifications are only practically useful for scheduling
 notifications to appear in the iOS status area at some time in the future.
 
 When local notifications are delivered and your app is open, they do not present
-any visual indication.  Instead, the event is delivered to the
-`localNotify.onNotify` callback you can optionally specify (see below).  This
-means that notifications delivered while players are in the game essentially do
-nothing new or useful.
-
-Another difference on iOS is that the `number` field causes a badge to appear on
-your app icon after the notification fires.  As soon as your app is opened again
-the badge count will be cleared and any triggered notifications will be
-evacuated from the status list at the top of the screen.
+any visual indication. Instead, the event is delivered to the
+`localNotify.onNotify` callback you can optionally specify (see below).
 
 iOS-specific features:
 
@@ -48,7 +40,6 @@ Notifications appear in the status area with a number of features:
 Android-specific features:
 
 + title: Title for alert is Android status area. [Android only]
-+ icon: Major icon/photo to display for notification. [Android only]
 + vibrate: Vibrate the phone on receipt? [Android only]
 
 For more overview see the [Android notification design pattern](http://developer.android.com/design/patterns/notifications.html) guide.
@@ -73,15 +64,12 @@ Notification objects have the following schema:
 
 + `name {string}` (REQUIRED) : Name of the notification.
 + `text {string}` (REQUIRED) : Text describing the notification to the user.
-+ `number {integer}` (optional) : Number attached to notification (see below).
 + `sound {string}` (optional) : One of the following options:
     + undefined : No sound. (default)
     + true : Use default notification sound.
-    + "resources/sounds/sound.wav" : Custom short .WAV audio file.
 
 + `action {string}` (optional, iOS-only) : Displayed at phone unlock screen as "Unlock to -action-".
 + `title {string}` (optional, Android-only) : Displayed as a title for the status line in the status area.
-+ `icon {string}` (optional, Android-only) : Path to a .PNG resource to use as an icon for the event.
 + `vibrate {boolean}` (optional, Android-only) : Should vibrate on alarm?
 + `userDefined {object}` (optional) : User-defined object to store with the notification data.
 + `date {Date}` (optional) : Date when notification should trigger, or:
@@ -97,8 +85,7 @@ For example:
 ~~~
 var myNotification = {
     name: "unlock",
-    number: 0,
-    sound: "notify.wav",
+    sound: true,
     vibrate: true,
     action: "Unlock",
     title: "Unlocked a New Level",
@@ -109,7 +96,6 @@ var myNotification = {
         hours: 2,
         days: 1
     },
-    icon: "resources/images/carnageNotify.png",
     userDefined: {
         bought: false
     }
@@ -129,57 +115,10 @@ The name is used to reference the notification in the `remove` and `get`
 functions, and it is included in the information returned from the `list`
 function.
 
-### Notification: Number
-
-Adding the `number` field to your notification object will modify how the
-notification appears:
-
-~~~
-localNotify.add({
-    name: "HeartAlert",
-    number: 2,
-    text: "2 friends have sent you Hearts!"
-});
-~~~
-
-On iPhone/iPad, the notification counter on your app icon will be set to
-`number`. When your app is launched, the counter will be reset to zero.
-
-On Android, this number will be shown next to the notification in the status
-area list.
-
 ### Combining Notifications
 
 You may choose to group gifts received from other players into a single
 notification to avoid overwhelming the player by using the following code:
-
-~~~
-function addHeartNotification(fromPlayer, gameName) {
-    // Check if single-heart notification exists
-    localNotify.get("hearts", function(heart) {
-        if (heart) {
-            var heartCount = heart.count + 1;
-
-            // This will overwrite any existing "hearts" notification
-            localNotify.add({
-                name: "hearts",
-                action: "Accept All",
-                title: "Received Gifts: Hearts",
-                text: "You have received " + heartCount + " Hearts from friends in " + gameName + "!",
-                number: heartCount
-            });
-        } else {
-            localNotify.add({
-                name: "hearts",
-                action: "Accept",
-                title: "Received Gift: Heart",
-                text: "You have received a Heart from " + fromPlayer + " in " + gameName + "!",
-                number: 1
-            });
-        }
-    });
-}
-~~~
 
 # localNotify object
 
