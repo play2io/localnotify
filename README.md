@@ -144,7 +144,7 @@ localNotify.onNotify = function(evt) {
     } else {
         logger.log("Got event:", evt.name);
     }
-});
+};
 ~~~
 
 ## Methods:
