@@ -7,6 +7,10 @@ This plugin supports local notifications on iOS and Android platforms.
 Local notifications allow you to schedule messages to appear in the phone's
 status area while your app is in the background or closed.
 
+When local notifications are delivered and your app is open, they do not present
+any visual indication. Instead, the event is delivered to the
+`localNotify.onNotify` callback you can optionally specify (see below).
+
 When delayed by a number of days, notifications are often used by games as a
 re-engagement strategy.
 
@@ -19,13 +23,6 @@ The following features are common between notification systems:
 Local notifications have slightly different uses based on the target device:
 
 #### iPhone/iPad
-
-On iOS devices, local notifications are only practically useful for scheduling
-notifications to appear in the iOS status area at some time in the future.
-
-When local notifications are delivered and your app is open, they do not present
-any visual indication. Instead, the event is delivered to the
-`localNotify.onNotify` callback you can optionally specify (see below).
 
 iOS-specific features:
 
