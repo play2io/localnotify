@@ -40,14 +40,26 @@
 
 - (void) onPause {
 	NSLOG(@"{localNotify} Paused: Clearing icon badge counter");
-
 	[[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
 }
 
 - (void) onResume {
 	NSLOG(@"{localNotify} Resumed: Clearing icon badge counter");
-	
 	[[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
+}
+
+- (void) requestNotificationPermission:(NSDictionary *)jsonObject {
+	NSLog(@"{localNotify} Requesting notification permission");
+	// TODO: can we check if we already have permission?
+	if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 8.0) {
+		[[UIApplication sharedApplication] registerUserNotificationSettings:
+			[UIUserNotificationSettings settingsForTypes:
+			(UIUserNotificationTypeSound | UIUserNotificationTypeAlert | UIUserNotificationTypeBadge) categories:nil]];
+		[[UIApplication sharedApplication] registerForRemoteNotifications];
+	} else {
+		[[UIApplication sharedApplication] registerForRemoteNotificationTypes:
+			(UIRemoteNotificationTypeBadge | UIRemoteNotificationTypeSound | UIRemoteNotificationTypeAlert)];
+	}
 }
 
 - (void) applicationDidBecomeActive:(UIApplication *)app {
@@ -89,31 +101,31 @@
 		utc = [NSNumber numberWithInt:(int)([n.fireDate timeIntervalSince1970] + 0.5)];
 	}
 
-	return [NSDictionary dictionaryWithObjectsAndKeys:
-			[n.userInfo valueForKey:@"name"],@"name",
-			[NSNumber numberWithInteger:n.applicationIconBadgeNumber],@"number",
-			(n.soundName != nil) ? n.soundName : [NSNull null],@"sound",
-			(n.alertAction != nil) ? n.alertAction : [NSNull null],@"action",
-			(n.alertBody != nil) ? n.alertBody : [NSNull null],@"text",
-			(utc != nil) ? utc : [NSNull null],@"utc",
-			(didLaunch ? kCFBooleanTrue : kCFBooleanFalse),@"launched",
-			(shown ? kCFBooleanTrue : kCFBooleanFalse),@"shown",
-			[n.userInfo valueForKey:@"userDefined"],@"userDefined", nil];
+	NSNumber* num = [[NSNumber alloc] initWithInteger:n.applicationIconBadgeNumber];
+	return @{
+		@"name": n.userInfo[@"name"],
+		@"number": num,
+		@"sound": (n.soundName != nil) ? n.soundName : [NSNull null],
+		@"action": (n.alertAction != nil) ? n.alertAction : [NSNull null],
+		@"text": (n.alertBody != nil) ? n.alertBody : [NSNull null],
+		@"utc": (utc != nil) ? utc : [NSNull null],
+		@"launched": [NSNumber numberWithBool:didLaunch],
+		@"shown": [NSNumber numberWithBool:shown],
+		@"userDefined": n.userInfo[@"userDefined"]
+	};
 }
 
 - (void) reportNotification:(UILocalNotification *)n didLaunch:(bool)didLaunch shown:(bool)shown {
 	if (n != nil) {
 		if (self.readyForNotifications == YES) {
 			NSLOG(@"{localNotify} Reporting local notification");
-
-			[[PluginManager get] dispatchJSEvent:[NSDictionary dictionaryWithObjectsAndKeys:
-												  @"LocalNotify",@"name",
-												  [self getNotificationObject:n didLaunch:didLaunch shown:shown],@"info", nil]];
-
+			[[PluginManager get] dispatchJSEvent: @{
+											  @"name": @"LocalNotify",
+											  @"info": [self getNotificationObject:n didLaunch:didLaunch shown:shown]
+											  }];
 			[[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
 		} else {
 			NSString *name = [n.userInfo valueForKey:@"name"];
-			
 			for (int ii = 0; ii < [self.pendingNotifications count]; ++ii) {
 				UILocalNotification *evt = [self.pendingNotifications objectAtIndex:ii];
 				NSString *evtName = [evt.userInfo valueForKey:@"name"];
@@ -125,7 +137,6 @@
 			}
 
 			NSLOG(@"{localNotify} Storing new local notification");
-
 			[self.pendingNotifications addObject:[NSDictionary dictionaryWithObjectsAndKeys:
 												  n,@"notification",
 												  (didLaunch ? kCFBooleanTrue : kCFBooleanFalse),@"launched", nil]];

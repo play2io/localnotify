@@ -93,6 +93,11 @@ var LocalNotify = Class(Emitter, function (supr) {
 		nativeSendEvent("LocalNotifyPlugin", "Ready", "{}");
 	};
 
+	// requests permission
+	this.requestNotificationPermission = function () {
+		nativeSendEvent("LocalNotifyPlugin", "requestNotificationPermission", "{}");
+	};
+
 	this.list = function(next) {
 		if (_activeCB.length === 0) {
 			nativeSendEvent("LocalNotifyPlugin", "List", "{}");
