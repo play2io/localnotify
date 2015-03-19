@@ -565,6 +565,12 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		}
 	}
 
+	public void requestNotificationPermission(String jsonData) {
+		logger.log(
+			"{localNotify} Requesting permissions is a no-op on android"
+		);
+	}
+
 	public void onActivityResult(Integer request, Integer resultCode, Intent data) {
 	}
 
