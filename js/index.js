@@ -126,6 +126,12 @@ var LocalNotify = Class(Emitter, function (supr) {
 			name: name
 		}));
 	}
+	
+	this.removeNotification = function(id) {
+		nativeSendEvent("LocalNotifyPlugin", "RemoveNotification", JSON.stringify({
+			id: id
+		}));
+	}
 
 	this.add = function(opts) {
 		// Inject date
