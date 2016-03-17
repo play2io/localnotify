@@ -160,8 +160,9 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
 		intent.putExtra("name", info.name);
 		intent.putExtra("fromLocalNotify", true);
+		intent.putExtra("userDefined", info.userDefined);
 
-		PendingIntent pending = PendingIntent.getActivity(context, STATUS_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+		PendingIntent pending = PendingIntent.getActivity(context, info.number, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 		builder.setContentIntent(pending);
 
 		Notification notification = builder.build();
@@ -172,7 +173,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		}
 
 		NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-		notificationManager.notify(STATUS_CODE, notification);
+		notificationManager.notify(info.number, notification);
 
 		// TODO: Clear notifications in status bar
 	}
@@ -228,6 +229,17 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			writePreferences();
 		}
 	}
+	
+	public void removeNotification(String notificationID) {
+		int inotifyID = 0;
+		if(notificationID != null){
+			inotifyID =Integer.parseInt(notificationID);
+		}
+		
+		NotificationManager notificationManager = (NotificationManager) _context.getSystemService(Context.NOTIFICATION_SERVICE);
+		notificationManager.cancel(inotifyID);
+		
+	}
 
 	public void cancelAlarm(String name) {
 		logger.log("{localNotify} Canceling alarm:", name);
@@ -261,8 +273,8 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		removeAlarm(n.name);
 
 		deliverAlarmToJS(n);
-
-		if (!_active) {
+//@change
+		if (!_active || true) {
 			// Place in status bar from background
 			logger.log("{localNotify} Displaying alarm in status bar:", n.name);
 
@@ -310,6 +322,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		// NOTE: This is called on a new empty instance of the class
 		if (action.equals("android.intent.action.BOOT_COMPLETED")) {
 			// TODO: Handle this
+			logger.log("{localNotify} BOOT_COMPLETED ");
 		} else if (action.equals(ACTION_NOTIFY)) {
 			if (_plugin != null) {
 				_plugin.broadcastReceived(context, intent);
@@ -399,16 +412,42 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 
 	public void onCreate(Activity activity, Bundle bundle) {
 		try {
-			logger.log("{localNotify} Initializing");
-
+			Intent startingIntent = activity.getIntent();
+		
 			_launchName = null;
-
+						
+			
+			if(startingIntent != null){
+					
+				String userDefined = startingIntent.getStringExtra("userDefined");	
+				String message = startingIntent.getStringExtra("message");
+			}
+			
+			
 			// If was launched from local notification,
 			if (bundle != null && bundle.containsKey("fromLocalNotify")) {
-				_launchName = bundle.getString("name");
-
-				logger.log("{localNotify} Launched from notification", _launchName);
+				_launchName = bundle.getString("name");	
+				
+				String userDefined = bundle.getString("userDefined");	
+				
+				String message = bundle.getString("message");	
+				
+				logger.log("{localNotify} Launched from notification ****** userDefined "+userDefined);
+				
+				logger.log("{localNotify} Launched from notification ****** message: "+message);
+				
+				logger.log("{localNotify} Launched from notification ****** ", _launchName);		
 			}
+			
+			if (bundle != null){
+				logger.log("{localNotify} bundle.size : "+bundle.size());
+				String isPush = bundle.getString("isPush");
+				String message = bundle.getString("message");
+				
+				logger.log("{localNotify}  Testing push notification "+message, isPush);								
+				
+			}
+			
 		} catch (Exception e) {
 			logger.log("{localNotify} WARNING: Exception while reading create intent:", e);
 		}
@@ -530,9 +569,25 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			e.printStackTrace();
 		}
 	}
+	
+	public void RemoveNotification(String jsonData) {
+		try {
+			JSONObject jsonObject = new JSONObject(jsonData);
+			final String id = jsonObject.getString("id");
+
+			logger.log("{localNotify} RemoveNotification requested for", id);
+
+			removeNotification(id);
+			
+		} catch (Exception e) {
+			logger.log("{localNotify} WARNING: Exception in remove:", e);
+			e.printStackTrace();
+		}
+	}
 
 	public void Add(String jsonData) {
-		try {
+		try {						
+			
 			JSONObject jsonObject = new JSONObject(jsonData);
 			final String NAME = jsonObject.getString("name");
 			final String TEXT = jsonObject.optString("text", "");
@@ -544,6 +599,8 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			final int UTC = jsonObject.optInt("utc", 0); // seconds
 			final String USER_DEFINED = jsonObject.optString("userDefined", "{}");
 
+			logger.log("{localNotify} Add Notification NUMBER :"+NUMBER);
+			
 			// Build notification object
 			NotificationData n = new NotificationData();
 			n.name = new String(NAME);
@@ -577,10 +634,19 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 	public void onNewIntent(Intent intent) {
 		String action = intent.getAction();
 
+		logger.log("{localNotify} onNewIntent action:"+action);
+				
+		String userDefined = intent.getStringExtra("userDefined");	
+				
+		String message = intent.getStringExtra("message");
+		
+		logger.log("{localNotify}  onNewIntent notification message:"+message);
+
+		logger.log("{localNotify} onNewIntent from notification userDefined: "+userDefined);
+		
 		// If looking at launch intent,
 		if (action.equals("android.intent.action.MAIN")) {
-			final boolean FROM_LOCALNOTIFY = intent.getBooleanExtra("fromLocalNotify", false);
-
+			final boolean FROM_LOCALNOTIFY = intent.getBooleanExtra("fromLocalNotify", false);				
 			// If launched from a notification,
 			if (FROM_LOCALNOTIFY) {
 				final String NAME = intent.getStringExtra("name");
