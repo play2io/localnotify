@@ -127,11 +127,16 @@ var LocalNotify = Class(Emitter, function (supr) {
 		}));
 	}
 	
-	this.removeNotification = function(id) {
+	this.removeNotification = function(notification) {
 		nativeSendEvent("LocalNotifyPlugin", "RemoveNotification", JSON.stringify({
-			id: id
+			'tag': notification.tag,
+			'id': notification.id || '0'
 		}));
-	}
+	};
+
+	this.removeAllNotification = function() {
+		nativeSendEvent("LocalNotifyPlugin", "RemoveAllNotification","{}");
+	};
 
 	this.add = function(opts) {
 		// Inject date

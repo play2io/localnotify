@@ -94,8 +94,11 @@ var myNotification = {
         days: 1
     },
     userDefined: {
-        bought: false
-    }
+        bought: false,
+        route: '/game/home'  // route to path
+    },
+    tag: 'msg_gm_34353_2' // notification tag, needed to remove notification,
+    ticker:'' // android ticker shown in statusbar
 };
 ~~~
 

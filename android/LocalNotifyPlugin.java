@@ -59,7 +59,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 	final static int ALARM_CODE = 0;
 
 	public class NotificationData {
-		String name, text, sound, title, icon, userDefined;
+		String name, text, sound, title, icon, userDefined,tag;
 		boolean vibrate;
 		boolean launched;
 		boolean shown;
@@ -173,9 +173,9 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		}
 
 		NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-		notificationManager.notify(info.number, notification);
+		notificationManager.notify(info.tag ,0, notification); //@info set tag so we can clear notification by NotificationManager.cancel(String TAG)
 
-		// TODO: Clear notifications in status bar
+		//@TODO: Clear notifications in status bar
 	}
 
 	public void addAlarm(NotificationData n) {
@@ -208,6 +208,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			intent.putExtra("userDefined", n.userDefined);
 			intent.putExtra("utc", n.utc);
 			intent.putExtra("fromLocalNotify", true);
+			intent.putExtra("tag", n.tag);
 
 			_alarmManager.set(AlarmManager.RTC_WAKEUP, n.utc * 1000, PendingIntent.getBroadcast(_context, ALARM_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT));
 		}
@@ -230,15 +231,13 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		}
 	}
 	
-	public void removeNotification(String notificationID) {
-		int inotifyID = 0;
-		if(notificationID != null){
-			inotifyID =Integer.parseInt(notificationID);
+	private void removeNotification(String tag, String id) {
+		int iNotifyID = 0;
+		if(id != null && !id.equals("")){
+			iNotifyID = Integer.parseInt(id);
 		}
-		
 		NotificationManager notificationManager = (NotificationManager) _context.getSystemService(Context.NOTIFICATION_SERVICE);
-		notificationManager.cancel(inotifyID);
-		
+		notificationManager.cancel( tag, iNotifyID);
 	}
 
 	public void cancelAlarm(String name) {
@@ -305,6 +304,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			n.icon = intent.getStringExtra("icon");
 			n.vibrate = intent.getBooleanExtra("vibrate", false);
 			n.userDefined = intent.getStringExtra("userDefined");
+			n.tag = intent.getStringExtra("tag");
 
 			deliverAlarm(n);
 
@@ -338,6 +338,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 					n.title = intent.getStringExtra("title");
 					n.icon = intent.getStringExtra("icon");
 					n.userDefined = intent.getStringExtra("userDefined");
+					n.tag = intent.getStringExtra("tag");
 					n.utc = intent.getLongExtra("utc", 0);
 					n.launched = false;
 					n.shown = false;
@@ -421,29 +422,35 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 					
 				String userDefined = startingIntent.getStringExtra("userDefined");	
 				String message = startingIntent.getStringExtra("message");
+				String tag = startingIntent.getStringExtra("tag");
+
+				logger.log("{localNotify} startingIntent.getStringExtra(userDefined) : "+userDefined);
+				logger.log("{localNotify}  startingIntent.getStringExtra(message) : "+message);
+
+				logger.log("{localNotify}  startingIntent.getStringExtra(tag) : "+tag);
 			}
 			
 			
 			// If was launched from local notification,
 			if (bundle != null && bundle.containsKey("fromLocalNotify")) {
-				_launchName = bundle.getString("name");	
+				_launchName = bundle.getString("name");
+				logger.log("{localNotify} Launched fromLocalNotify ****** ", _launchName);
 				
-				String userDefined = bundle.getString("userDefined");	
-				
-				String message = bundle.getString("message");	
-				
-				logger.log("{localNotify} Launched from notification ****** userDefined "+userDefined);
-				
-				logger.log("{localNotify} Launched from notification ****** message: "+message);
-				
-				logger.log("{localNotify} Launched from notification ****** ", _launchName);		
+				String userDefined = bundle.getString("userDefined");
+				String message = bundle.getString("message");
+
+				logger.log("{localNotify} Launched fromLocalNotify ****** userDefined "+userDefined);
+				logger.log("{localNotify} Launched fromLocalNotify ****** message: "+message);
+				logger.log("{localNotify} Launched fromLocalNotify ****** tag "+bundle.getString("tag"));
+
 			}
 			
 			if (bundle != null){
-				logger.log("{localNotify} bundle.size : "+bundle.size());
+				logger.log("{localNotify} NOT_localNotify bundle.size : "+bundle.size());
 				String isPush = bundle.getString("isPush");
 				String message = bundle.getString("message");
-				
+
+				logger.log("{localNotify} Launched from PUSH  ****** tag "+bundle.getString("tag"));
 				logger.log("{localNotify}  Testing push notification "+message, isPush);								
 				
 			}
@@ -574,11 +581,23 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		try {
 			JSONObject jsonObject = new JSONObject(jsonData);
 			final String id = jsonObject.getString("id");
+			final String tag = jsonObject.getString("tag");
 
-			logger.log("{localNotify} RemoveNotification requested for", id);
+			logger.log("{localNotify} RemoveNotification requested for"+tag+"_"+ id);
 
-			removeNotification(id);
+			removeNotification(tag,id);
 			
+		} catch (Exception e) {
+			logger.log("{localNotify} WARNING: Exception in remove:", e);
+			e.printStackTrace();
+		}
+	}
+
+	public void RemoveAllNotification() {
+		try {
+			logger.log("{localNotify} Remove ALL Notification requested ");
+			NotificationManager notificationManager = (NotificationManager) _context.getSystemService(Context.NOTIFICATION_SERVICE);
+            notificationManager.cancelAll();
 		} catch (Exception e) {
 			logger.log("{localNotify} WARNING: Exception in remove:", e);
 			e.printStackTrace();
@@ -598,6 +617,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			final String ICON = jsonObject.optString("icon", "");
 			final int UTC = jsonObject.optInt("utc", 0); // seconds
 			final String USER_DEFINED = jsonObject.optString("userDefined", "{}");
+			final String NOTIFICATION_TAG = jsonObject.optString("tag", "{}");
 
 			logger.log("{localNotify} Add Notification NUMBER :"+NUMBER);
 			
@@ -611,6 +631,7 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			n.icon = new String(ICON);
 			n.vibrate = VIBRATE;
 			n.userDefined = new String(USER_DEFINED);
+			n.tag = new String(NOTIFICATION_TAG);
 			n.utc = UTC;
 			n.launched = false;
 			n.shown = false;
