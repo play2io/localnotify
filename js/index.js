@@ -126,17 +126,6 @@ var LocalNotify = Class(Emitter, function (supr) {
 			name: name
 		}));
 	}
-	
-	this.removeNotification = function(notification) {
-		nativeSendEvent("LocalNotifyPlugin", "RemoveNotification", JSON.stringify({
-			'tag': notification.tag,
-			'id': notification.id || '0'
-		}));
-	};
-
-	this.removeAllNotification = function() {
-		nativeSendEvent("LocalNotifyPlugin", "RemoveAllNotification","{}");
-	};
 
 	this.add = function(opts) {
 		// Inject date
@@ -172,5 +161,33 @@ var LocalNotify = Class(Emitter, function (supr) {
 	}
 });
 
-exports = new LocalNotify();
+var localNotify = new LocalNotify();
+
+
+localNotify.removeNotification = function(notification) {
+	nativeSendEvent("LocalNotifyPlugin", "RemoveNotification", JSON.stringify({
+		'tag': notification.tag,
+		'id': notification.id || '0'
+	}));
+};
+
+localNotify.removeAllNotification = function() {
+	nativeSendEvent("LocalNotifyPlugin", "RemoveAllNotification","{}");
+};
+
+
+localNotify.listenNotificationClick = function listenNotificationClick(next) {
+	nativeRegisterHandler("NotifyClick", function (evt) {
+		var info = evt.info;
+		logger.log("  Notification data from click: " +info.name+'::'+ info.userDefined);
+		info.userDefined = JSON.parse(info.userDefined);
+		var err;
+		if (evt.error) {
+			err = evt.error;
+		};
+		next(err, info);
+	});
+};
+
+exports = localNotify;
 
