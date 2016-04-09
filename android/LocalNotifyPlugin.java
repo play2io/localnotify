@@ -130,6 +130,18 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 		}
 	}
 
+	public class NotificationClickEvent extends com.tealeaf.event.Event {
+    		NotificationData info;
+    		String error;
+
+    		public NotificationClickEvent(NotificationData info) {
+    			super("NotifyClick");
+    			this.info = info;
+    			this.error = null;
+    		}
+
+    }
+
 	public static void showNotification(Context context, NotificationData info) {
 		int defaults = Notification.DEFAULT_LIGHTS;
 
@@ -653,17 +665,19 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 	}
 
 	public void onNewIntent(Intent intent) {
+
 		String action = intent.getAction();
-
-		logger.log("{localNotify} onNewIntent action:"+action);
-				
-		String userDefined = intent.getStringExtra("userDefined");	
-				
-		String message = intent.getStringExtra("message");
-		
-		logger.log("{localNotify}  onNewIntent notification message:"+message);
-
+		String userDefined = intent.getStringExtra("userDefined");
 		logger.log("{localNotify} onNewIntent from notification userDefined: "+userDefined);
+
+		NotificationData n = new NotificationData();
+		n.utc = System.currentTimeMillis();
+		n.launched = true;
+		n.shown = true;
+
+		if(userDefined != null && userDefined.length() > 0){
+			n.userDefined = userDefined;
+		}
 		
 		// If looking at launch intent,
 		if (action.equals("android.intent.action.MAIN")) {
@@ -671,11 +685,18 @@ public class LocalNotifyPlugin extends BroadcastReceiver implements IPlugin {
 			// If launched from a notification,
 			if (FROM_LOCALNOTIFY) {
 				final String NAME = intent.getStringExtra("name");
-
 				logger.log("{localNotify} App launched from notification:", NAME);
-
 				_launchName = NAME;
+
+				if(NAME != null && NAME.length() > 0){
+					n.name = new String(NAME);
+					n.tag = new String(NAME);
+				}
 			}
+		};
+
+		if(n.userDefined != null || n.name != null){
+			EventQueue.pushEvent(new NotificationClickEvent(n));
 		}
 	}
 
